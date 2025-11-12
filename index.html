@@ -44,11 +44,31 @@
     <footer>Made with ❤️ — Geet Chor</footer>
   </div>
 
+  <!-- AUDIO -->
+  <audio id="bgMusic" loop>
+    <source src="background.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="jumpSound">
+    <source src="jump.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="crashSound">
+    <source src="crash.mp3" type="audio/mpeg">
+  </audio>
+
   <script>
   (function(){
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    // AUDIO VARIABLES
+    const bgMusic = document.getElementById('bgMusic');
+    const jumpSound = document.getElementById('jumpSound');
+    const crashSound = document.getElementById('crashSound');
+    bgMusic.volume = 0.2;
+    jumpSound.volume = 0.5;
+    crashSound.volume = 0.5;
+
     function resizeCanvas(){
       const styleW = canvas.clientWidth;
       const styleH = Math.round(styleW * (canvas.height / canvas.width));
@@ -84,6 +104,8 @@
       if(state === 'ready') startGame();
       if(state === 'playing'){
         thief.vy = thief.jumpPower;
+        jumpSound.currentTime = 0; // jump sound
+        jumpSound.play();
       }
       if(state === 'over') resetGame();
     }
@@ -104,6 +126,8 @@
       pipes.length = 0;
       lastSpawn = performance.now();
       thief.y = GAME.h/2; thief.vy = 0;
+      bgMusic.currentTime = 0; // start bg music
+      bgMusic.play();
     }
     function resetGame(){
       state = 'ready';
@@ -174,11 +198,18 @@
         if(circleRectCollision(thief.x, thief.y, thief.radius, topRect.x, topRect.y, topRect.w, topRect.h) ||
            circleRectCollision(thief.x, thief.y, thief.radius, botRect.x, botRect.y, botRect.w, botRect.h)){
           state = 'over';
+          crashSound.currentTime = 0; crashSound.play(); // play crash sound
+          bgMusic.pause(); bgMusic.currentTime = 0;       // stop background music
           setTimeout(()=>{ resetGame(); }, 500);
         }
       }
 
-      if(thief.y + thief.radius > GAME.h - 60){ state='over'; thief.y = GAME.h - 60 - thief.radius; setTimeout(()=>{ resetGame(); },500);} 
+      if(thief.y + thief.radius > GAME.h - 60){ 
+        state='over'; thief.y = GAME.h - 60 - thief.radius; 
+        crashSound.currentTime = 0; crashSound.play();
+        bgMusic.pause(); bgMusic.currentTime = 0;
+        setTimeout(()=>{ resetGame(); },500);
+      } 
       if(thief.y - thief.radius < 0){ thief.y = thief.radius; thief.vy = 0; }
     }
 
