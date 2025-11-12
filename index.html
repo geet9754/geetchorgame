@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Geet Chor</title>
+  <style>
+    html,body{height:100%;margin:0;background:linear-gradient(#87CEEB,#4AA3DF);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans','Helvetica Neue',Arial}
+    #game-wrap{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;}
+    canvas{display:block;border-radius:12px;background:transparent;box-shadow:0 10px 30px rgba(0,0,0,0.15);touch-action:none}
+    .ui{width:100%;max-width:480px;padding:12px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;position:relative;flex-direction:column;}
+    .title{font-weight:700;color:#fff;font-size:20px;text-shadow:0 2px 6px rgba(0,0,0,0.25);line-height:1.2;}
+    .maker{color:#fff;font-size:12px;font-weight:bold;text-shadow:0 1px 4px rgba(0,0,0,0.5);margin-top:2px;}
+    .score{color:#fff;font-weight:700;font-size:18px;position:absolute;right:12px;top:12px;}
+    .overlay{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .panel{background:rgba(255,255,255,0.98);color:#222;padding:18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.18);max-width:420px;text-align:center}
+    .btn{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:10px;border:none;background:#1e90ff;color:#fff;font-weight:700;cursor:pointer}
+    .hint{margin-top:8px;color:#444;font-size:14px}
+    footer{margin:10px 0 20px;color:rgba(255,255,255,0.95);font-size:13px;text-align:center}
+  </style>
+</head>
+<body>
+  <div id="game-wrap">
+    <div class="ui">
+      <div>
+        <div class="title">Geet Chor</div>
+        <div class="maker">MADE BY GEETESH UIKEY FROM INDIA</div>
+      </div>
+      <div class="score" id="score">Score: 0</div>
+    </div>
+
+    <div style="position:relative;width:100%;max-width:480px;flex:1;display:flex;align-items:center;justify-content:center">
+      <canvas id="game" width="360" height="640" style="width:100%;height:auto"></canvas>
+      <div class="overlay" id="overlay" style="pointer-events:auto">
+        <div class="panel" id="panel">
+          <h2 id="panel-title">Touch to start</h2>
+          <p id="panel-desc">Tap / Click / Press Spacebar to make the Geet Chor jump and pass between walls. Try to get high score!</p>
+          <button class="btn" id="startBtn">Start Game</button>
+          <div class="hint">Tap anywhere while playing for a flap. On desktop use Spacebar.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Made with ❤️ — Geet Chor</footer>
+  </div>
+
+  <script>
+  (function(){
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    function resizeCanvas(){
+      const styleW = canvas.clientWidth;
+      const styleH = Math.round(styleW * (canvas.height / canvas.width));
+      canvas.width = Math.round(styleW * DPR);
+      canvas.height = Math.round(styleH * DPR);
+      canvas.style.height = styleH + 'px';
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const GAME = {w:360, h:640};
+    let state = 'ready';
+    let score = 0;
+    let highScore = localStorage.getItem('geetchor_highscore') ? parseInt(localStorage.getItem('geetchor_highscore')) : 0;
+
+    const thief = {
+      x: 80,
+      y: GAME.h/2,
+      radius: 18,
+      vy:0,
+      gravity: 0.4,
+      jumpPower: -8,
+      rotation:0
+    };
+
+    const pipes = [];
+    const PIPE = {width:60, gap:180, speed:2, spawnInterval:1600};
+    let lastSpawn = 0;
+    let lastTime = performance.now();
+
+    function flap(){
+      if(state === 'ready') startGame();
+      if(state === 'playing'){
+        thief.vy = thief.jumpPower;
+      }
+      if(state === 'over') resetGame();
+    }
+    window.addEventListener('keydown', (e)=>{if(e.code === 'Space'){e.preventDefault();flap();}});
+    canvas.addEventListener('pointerdown', ()=>{flap();});
+
+    const overlay = document.getElementById('overlay');
+    const panelTitle = document.getElementById('panel-title');
+    const panelDesc = document.getElementById('panel-desc');
+    const startBtn = document.getElementById('startBtn');
+    const scoreEl = document.getElementById('score');
+    startBtn.addEventListener('click', ()=>{flap();});
+
+    function startGame(){
+      state = 'playing';
+      overlay.style.display = 'none';
+      score = 0; updateScore();
+      pipes.length = 0;
+      lastSpawn = performance.now();
+      thief.y = GAME.h/2; thief.vy = 0;
+    }
+    function resetGame(){
+      state = 'ready';
+      overlay.style.display = 'flex';
+      if(score > highScore){
+        highScore = score;
+        localStorage.setItem('geetchor_highscore', highScore);
+      }
+      panelTitle.textContent = 'NIKAL LAVDE';
+      panelDesc.textContent = `Score: ${score}\nHighest: ${highScore}\nTap Start to play again.`;
+      startBtn.textContent = 'Play Again';
+    }
+
+    function updateScore(){scoreEl.textContent = `Score: ${score} | High: ${highScore}`;}
+
+    function rand(min,max){return Math.random()*(max-min)+min}
+
+    function spawnPipe(){
+      const gap = PIPE.gap;
+      const topH = rand(60, GAME.h - gap - 120);
+      const pipe = {x: GAME.w + 30, top: topH, bottom: topH + gap, width: PIPE.width, passed:false};
+      pipes.push(pipe);
+    }
+
+    function circleRectCollision(cx,cy,r,rx,ry,rw,rh){
+      const closestX = Math.max(rx, Math.min(cx, rx+rw));
+      const closestY = Math.max(ry, Math.min(cy, ry+rh));
+      const dx = cx - closestX; const dy = cy - closestY;
+      return (dx*dx + dy*dy) < (r*r);
+    }
+
+    function drawThief(x,y,r,rot){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(rot);
+      ctx.beginPath(); ctx.ellipse(0,0,r*1.05,r,0,0,Math.PI*2); ctx.fillStyle='#222'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-2,-2,r*0.6,r*0.35,0,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+      ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(-6,-2,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(2,-2,2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#111'; ctx.fillRect(-r-2,-r-8,r*2+4,6);
+      ctx.beginPath(); ctx.moveTo(-r-6,-r-8); ctx.lineTo(0,-r-18); ctx.lineTo(r+6,-r-8); ctx.fill();
+      ctx.fillStyle='#6b3e26'; ctx.fillRect(r*0.5, r*0.1, r*0.9, r*0.7);
+      ctx.restore();
+    }
+
+    function drawBackground(){
+      const w = GAME.w, h = GAME.h;
+      ctx.fillStyle = '#3b8b3b'; ctx.fillRect(0, h - 60, w, 60);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath(); ctx.ellipse(60, h-40, 120,60,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(240, h-45, 160,70,0,0,Math.PI*2); ctx.fill();
+    }
+
+    function update(dt){
+      if(state !== 'playing') return;
+      thief.vy += thief.gravity;
+      thief.y += thief.vy;
+      thief.rotation = Math.max(-0.6, Math.min(0.6, thief.vy/15));
+
+      if(performance.now() - lastSpawn > PIPE.spawnInterval){ spawnPipe(); lastSpawn = performance.now(); }
+
+      for(let i=pipes.length-1;i>=0;i--){
+        const p = pipes[i]; p.x -= PIPE.speed;
+        if(!p.passed && p.x + p.width < thief.x - thief.radius){ p.passed = true; score++; updateScore(); }
+        if(p.x + p.width < -50) pipes.splice(i,1);
+
+        const topRect = {x:p.x, y:0, w:p.width, h:p.top};
+        const botRect = {x:p.x, y:p.bottom, w:p.width, h:GAME.h - p.bottom};
+        if(circleRectCollision(thief.x, thief.y, thief.radius, topRect.x, topRect.y, topRect.w, topRect.h) ||
+           circleRectCollision(thief.x, thief.y, thief.radius, botRect.x, botRect.y, botRect.w, botRect.h)){
+          state = 'over';
+          setTimeout(()=>{ resetGame(); }, 500);
+        }
+      }
+
+      if(thief.y + thief.radius > GAME.h - 60){ state='over'; thief.y = GAME.h - 60 - thief.radius; setTimeout(()=>{ resetGame(); },500);} 
+      if(thief.y - thief.radius < 0){ thief.y = thief.radius; thief.vy = 0; }
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,GAME.w,GAME.h);
+      drawBackground();
+      for(const p of pipes){
+        ctx.fillStyle = '#2d6a4f';
+        ctx.fillRect(p.x, 0, p.width, p.top);
+        ctx.fillRect(p.x, p.bottom, p.width, GAME.h - p.bottom - 60);
+        ctx.fillStyle = '#1b4332';
+        ctx.fillRect(p.x, p.top - 8, p.width, 8);
+        ctx.fillRect(p.x, p.bottom, p.width, 8);
+      }
+      drawThief(thief.x, thief.y, thief.radius, thief.rotation);
+      if(state === 'ready'){
+        ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.font='18px system-ui'; ctx.textAlign='center';
+        ctx.fillText('Tap to flap — Geet Chor ko udaiye!', GAME.w/2, GAME.h*0.28);
+      }
+    }
+
+    function gameLoop(now){
+      const dt = now - lastTime; lastTime = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    function setCanvasSizeToGame(){
+      const containerW = Math.min(window.innerWidth, 480);
+      const scale = containerW / GAME.w;
+      canvas.style.width = (GAME.w * scale) + 'px';
+      canvas.style.height = (GAME.h * scale) + 'px';
+      canvas.width = Math.round(GAME.w * DPR);
+      canvas.height = Math.round(GAME.h * DPR);
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    setCanvasSizeToGame();
+    window.addEventListener('resize', setCanvasSizeToGame);
+
+    document.body.addEventListener('touchmove', function(e){ if(state === 'playing') e.preventDefault(); }, {passive:false});
+
+  })();
+  </script>
+</body>
+</html>
