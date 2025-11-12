@@ -45,8 +45,8 @@
   </div>
 
   <!-- AUDIO -->
-  <audio id="Pakad MC Meme Template  Pakad Le BKL Ke Meme  Chodu CID Meme - CXM EDITS.mp3" loop>
-    <source src="Pakad MC Meme Template  Pakad Le BKL Ke Meme  Chodu CID Meme - CXM EDITS.mp3" type="audio/mpeg">
+  <audio id="bgMusic" loop>
+    <source src="background.mp3" type="audio/mpeg">
   </audio>
   <audio id="jumpSound">
     <source src="jump.mp3" type="audio/mpeg">
@@ -62,10 +62,10 @@
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
     // AUDIO VARIABLES
-    const bgMusic = document.getElementById('Pakad MC Meme Template  Pakad Le BKL Ke Meme  Chodu CID Meme - CXM EDITS.mp3');
+    const bgMusic = document.getElementById('bgMusic');
     const jumpSound = document.getElementById('jumpSound');
     const crashSound = document.getElementById('crashSound');
-    Pakad MC Meme Template  Pakad Le BKL Ke Meme  Chodu CID Meme - CXM EDITS.mp3.volume = 0.2;
+    bgMusic.volume = 0.2;
     jumpSound.volume = 0.5;
     crashSound.volume = 0.5;
 
